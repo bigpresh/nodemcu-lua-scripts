@@ -38,10 +38,10 @@ srv:listen(80, function(conn)
         print('Received a request')
 	usage_kwh = flash_count * 0.001
 	period_s = tmr.time() - flashes_since
+	avg_watts = flash_count / (period_s / 60 / 60)
         flash_count = 0
         flashes_since = tmr.time()
         -- work out the average current in watts - watt-hours / hours
-	avg_watts = (usage_kwh * 1000) / (period_s * 60 * 60)
         client:send(
             '{"usage_kwh":' .. usage_kwh .. ',"avg_watts":' .. avg_watts
             .. ',"seconds":' .. period_s..'}'
