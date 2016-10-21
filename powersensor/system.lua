@@ -3,15 +3,16 @@
 in_flash = false
 flash_count = 0
 flashes_since = tmr.time()
+
 function checkValue()
     -- print("Checkvalue called")
     value = adc.read(0)
 
     -- print("value:"..value)
-    if value > 200 then
+    if value > 150 then
         -- bright enough to be a flash
         if not in_flash then
-            print("New flash detected!")
+            print("New flash detected, brightness "..value)
             in_flash = true
             flash_count = flash_count + 1
         end
@@ -21,7 +22,7 @@ function checkValue()
 end
 
 -- tmr.register(id/ref, interval_ms, mode, func)
-tmr.alarm(0, 50, tmr.ALARM_AUTO, checkValue)
+tmr.alarm(0, 10, tmr.ALARM_AUTO, checkValue)
 print("registered timer")
 
 
@@ -38,7 +39,11 @@ srv:listen(80, function(conn)
         print('Received a request')
 	usage_kwh = flash_count * 0.001
 	period_s = tmr.time() - flashes_since
-	avg_watts = flash_count / (period_s / 60 / 60)
+        -- avg_watts = ( flash_count / 3600 ) * period_s
+        -- http://people.ds.cam.ac.uk/ssb22/elec/imp.html says:
+        -- "Average kW = 3.6 / seconds per flash"
+        -- so, period / flashes = average time between flashes
+        avg_watts = 3.6 / (period_s / flash_count) * 1000 
         flash_count = 0
         flashes_since = tmr.time()
         -- work out the average current in watts - watt-hours / hours
