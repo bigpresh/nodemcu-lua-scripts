@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+
+use strict;
+use 5.010;
+
+use JSON;
+use LWP::Simple;
+
+my $mode = shift;
+
+
+
+if ($mode eq "autoconf") {
+    say "yes";
+    exit;
+} elsif ($mode eq "config") {
+    print <<CONFIG;
+graph_title House power usage (Watts)
+graph_vlabel Watts
+graph_info Average current in watts
+graph_category Sensors
+watts.label Average current (Watts)
+CONFIG
+    exit;
+} else {
+    my $json = LWP::Simple::get('http://metermon-esp8266/')
+        or die "Failed to fetch stats";
+
+    my $data = JSON::decode_json($json)
+        or die "Failed to parse JSON '$json'";
+
+    print "watts.value " . $data->{avg_watts};
+}
+
+
