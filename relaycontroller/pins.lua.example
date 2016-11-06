@@ -1,0 +1,3 @@
+pins = {
+    coffee_machine => 7
+}
