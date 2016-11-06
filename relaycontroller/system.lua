@@ -6,6 +6,9 @@
 -- Define a map of output names to pin numbers as a dict named 'pins'
 -- in pins.lua so the calling code can use names rather than numbers
 -- e.g. pins = { foo = 3, bar = 4 }
+-- If your relay board operates when the input is pulled LOW, then set
+-- reverse_logic = 1 in your pins.lua, too.
+reverse_logic = 0;
 print("Reading pin definitions from pins.lua")
 dofile('pins.lua')
 
@@ -14,7 +17,11 @@ dofile('pins.lua')
 for name,pin in pairs(pins) do
     print("Configuring GPIO pin " .. pin .. " as name " .. name)
     gpio.mode(pin, gpio.OUTPUT)
-    gpio.write(pin, gpio.LOW)
+    if (reverse_logic) then
+        gpio.write(pin, gpio.LOW)
+    else
+        gpio.write(pin, gpio.HIGH)
+    end
 end
 
  
@@ -66,7 +73,15 @@ srv:listen(80,function(conn)
                 if (query.action) then
                     local new_state = { on = gpio.HIGH, off = gpio.LOW }
                     if (new_state[query.action]) then
-                        gpio.write(pin_num, new_state[query.action])
+                        local set_state = new_state[query.action];
+                        if (reverse_logic) then
+                            if (set_state == gpio.HIGH) then
+                                set_state = gpio.LOW
+                            else
+                                set_state = gpio.HIGH
+                            end
+                        end
+                        gpio.write(pin_num, set_state)
                     else
                         buf = '{"error":"action_invalid"}'
                     end
@@ -74,6 +89,13 @@ srv:listen(80,function(conn)
 
                 -- now return the current state of the pin
                 local state = gpio.read(pin_num)
+                if (reverse_logic) then
+                    if (state == 1) then
+                        state = 0
+                    else
+                        state = 1
+                    end
+                end
                 buf = '{"state":'.. state .. ',"pin_num":'.. pin_num .. '}'
             end
 
