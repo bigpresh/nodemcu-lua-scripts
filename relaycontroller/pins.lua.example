@@ -1,3 +1,8 @@
+-- define a map of pin names to pin numbers
 pins = {
     coffee_machine => 7
 }
+
+-- If your relay switches on when the input goes low (GND) instead of high,
+-- set this to a true value
+reverse_logic = 0
