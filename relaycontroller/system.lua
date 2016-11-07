@@ -8,19 +8,24 @@
 -- e.g. pins = { foo = 3, bar = 4 }
 -- If your relay board operates when the input is pulled LOW, then set
 -- reverse_logic = 1 in your pins.lua, too.
-reverse_logic = 0;
+reverse_logic = false
 print("Reading pin definitions from pins.lua")
 dofile('pins.lua')
 
+if (reverse_logic) then
+    print("Reversing logic state as reverse_logic is set")
+end
 
 -- for each pin, set it up as an output and initialise it as a GPIO output
 for name,pin in pairs(pins) do
     print("Configuring GPIO pin " .. pin .. " as name " .. name)
     gpio.mode(pin, gpio.OUTPUT)
     if (reverse_logic) then
-        gpio.write(pin, gpio.LOW)
-    else
+        print("Set initial state for "..pin.." to HIGH")
         gpio.write(pin, gpio.HIGH)
+    else
+        print("Set initial state for "..pin.." to LOW")
+        gpio.write(pin, gpio.LOW)
     end
 end
 
@@ -71,17 +76,17 @@ srv:listen(80,function(conn)
             else
                 -- if we were told to change the pin's status, do it
                 if (query.action) then
-                    local new_state = { on = gpio.HIGH, off = gpio.LOW }
-                    if (new_state[query.action]) then
-                        local set_state = new_state[query.action];
-                        if (reverse_logic) then
-                            if (set_state == gpio.HIGH) then
-                                set_state = gpio.LOW
-                            else
-                                set_state = gpio.HIGH
-                            end
-                        end
-                        gpio.write(pin_num, set_state)
+                    print("Told to turn pin " .. pin_num .. " " .. query.action)
+                    local pin_state = { on = gpio.HIGH, off = gpio.LOW }
+                    if (reverse_logic) then
+                        pin_state = { on = gpio.LOW, off = gpio.HIGH }
+                    end
+                    if (pin_state[query.action]) then
+                        print(
+                            "Set pin " .. pin_num .. " to "
+                            .. pin_state[query.action]
+                        )
+                        gpio.write(pin_num, pin_state[query.action])
                     else
                         buf = '{"error":"action_invalid"}'
                     end
