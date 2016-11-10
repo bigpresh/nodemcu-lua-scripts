@@ -19,6 +19,20 @@ wifi.sta.eventMonReg(wifi.STA_GOTIP, function()
     cu:on("receive", function(cu, c) print(c) end)
     cu:connect(514, "10.1.10.254")
     cu:send(wifi.sta.gethostname() .. ' started up')
+
+    local bootreasons = {
+        'power on',
+        'hardware watchdog reset',
+        'exception reset',
+        'software watchdog reset',
+        'software restart',
+        'wake from deep sleep',
+        'external reset'
+    }
+    local meh, bootreasonid = node.bootreason()
+    local bootreason = bootreasons[bootreasonid];
+    syslog("Boot reason: " .. bootreason)
+
 end)
 wifi.sta.eventMonStart()
 
