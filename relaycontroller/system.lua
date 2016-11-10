@@ -8,23 +8,31 @@
 -- e.g. pins = { foo = 3, bar = 4 }
 -- If your relay board operates when the input is pulled LOW, then set
 -- reverse_logic = 1 in your pins.lua, too.
+-- You can also set nodename there to denote what this relay controller is for
+-- so it can be used in syslog messages.
 reverse_logic = false
-print("Reading pin definitions from pins.lua")
+nodename = 'relayctl';
+
+syslog("Reading pin definitions from pins.lua")
 dofile('pins.lua')
 
 if (reverse_logic) then
-    print("Reversing logic state as reverse_logic is set")
+    syslog("Reversing logic state as reverse_logic is set")
 end
+
+
+
+
 
 -- for each pin, set it up as an output and initialise it as a GPIO output
 for name,pin in pairs(pins) do
-    print("Configuring GPIO pin " .. pin .. " as name " .. name)
+    syslog("Configuring GPIO pin " .. pin .. " as name " .. name)
     gpio.mode(pin, gpio.OUTPUT)
     if (reverse_logic) then
-        print("Set initial state for "..pin.." to HIGH")
+        syslog("Set initial state for "..pin.." to HIGH")
         gpio.write(pin, gpio.HIGH)
     else
-        print("Set initial state for "..pin.." to LOW")
+        syslog("Set initial state for "..pin.." to LOW")
         gpio.write(pin, gpio.LOW)
     end
 end
@@ -43,7 +51,7 @@ srv:listen(80,function(conn)
 	-- turn on LED to indicate we're handling a request
 	gpio.write(led_pin, gpio.LOW)
         local ip, port = conn:getpeer()
-        print("Handling request from " .. ip)
+        syslog("Handling connection from " .. ip)
 
         -- Crudely parse the HTTP request
         local buf = ""
@@ -57,7 +65,7 @@ srv:listen(80,function(conn)
             end
         end
 
-        print("Requested " .. method .. " /" .. url)
+        syslog("Request for " .. method .. " /" .. url .. ' from ' .. ip)
 
 
         -- Handle requests for a given pin name first
@@ -69,20 +77,34 @@ srv:listen(80,function(conn)
                 -- it's not a pin we recognise - it's either a request for
                 -- status info, or an error
                 if (url == 'status') then
-                    buf = '{"uptime":'..tmr.time()..'}'
+                    -- TODO: refactor this all out
+                    syslog('status request from ' .. ip)
+                    local meh, bootreasonid = node.bootreason()
+                    reasons = {
+                        'power on',
+                        'hardware watchdog reset',
+                        'exception reset',
+                        'software watchdog reset',
+                        'software restart',
+                        'wake from deep sleep',
+                        'external reset'
+                    }
+                    buf = '{"uptime":'..tmr.time()..',"boot_reason_id":'..
+                        bootreasonid .. ',"boot_reason_text":"' ..
+                        reasons[bootreasonid] .. '"}'
                 else
                     buf = '{"error":"invalid_pin_name"}'
                 end
             else
                 -- if we were told to change the pin's status, do it
                 if (query.action) then
-                    print("Told to turn pin " .. pin_num .. " " .. query.action)
+                    syslog("Told to turn pin " .. pin_num .. " " .. query.action)
                     local pin_state = { on = gpio.HIGH, off = gpio.LOW }
                     if (reverse_logic) then
                         pin_state = { on = gpio.LOW, off = gpio.HIGH }
                     end
                     if (pin_state[query.action]) then
-                        print(
+                        syslog(
                             "Set pin " .. pin_num .. " to "
                             .. pin_state[query.action]
                         )
