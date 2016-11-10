@@ -114,6 +114,25 @@ srv:listen(80,function(conn)
                     end
                 end
 
+                -- If we were told to start toggling the pin for testing, then
+                -- set a timer to do so
+                if (query.autotoggle) then
+                    syslog("Told to start auto-toggling pin " .. pin_num)
+                    local mytimer = tmr.create()
+                    mytimer:register(1000, tmr.ALARM_AUTO, function (t)
+                        syslog("Toggle pin " .. pin_num)
+                        if (gpio.read(pin_num) == gpio.HIGH) then
+                            syslog("Toggling pin " .. pin_num .. " LOW")
+                            gpio.write(pin_num, gpio.LOW)
+                        else
+                            syslog("Toggling pin " .. pin_num .. " HIGH")
+                            gpio.write(pin_num, gpio.HIGH)
+                        end
+                        
+                    end)
+                    mytimer:start()
+                end
+
                 -- now return the current state of the pin
                 local state = gpio.read(pin_num)
                 if (reverse_logic) then
