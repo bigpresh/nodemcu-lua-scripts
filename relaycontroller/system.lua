@@ -53,6 +53,11 @@ srv:listen(80,function(conn)
         local ip, port = conn:getpeer()
         syslog("Handling connection from " .. ip)
 
+        -- If we're turning off the output, and the heap space is low, we'll
+        -- auto-reboot once the request is complete, but we need to rmemeber if
+        -- we need to.
+        local reset_after_request = false
+
         -- Crudely parse the HTTP request
         local buf = ""
         local query = {}
@@ -111,6 +116,15 @@ srv:listen(80,function(conn)
                             .. pin_state[query.action]
                         )
                         gpio.write(pin_num, pin_state[query.action])
+                        -- If we turned the pin off, and the heap space is low,
+                        -- auto-reboot after this request
+                        if (node.heap() < 5000 and pin_state[query.action] == 0) then
+                            syslog(
+                                "Heap space down to " .. node.heap() ..
+                                " - restarting after this request"
+                            );
+                            reset_after_request = true
+                        end
                     else
                         buf = '{"error":"action_invalid"}'
                     end
@@ -137,6 +151,15 @@ srv:listen(80,function(conn)
 
                 -- now return the current state of the pin
                 local state = gpio.read(pin_num)
+                -- if the pin is low, and we're running out of heap space,
+                -- auto-reboot after the request
+                if (state == 0 and node.heap() < 5000) then
+                    syslog(
+                        "Heap space down to " .. node.heap() ..
+                        " - restarting after this request"
+                    );
+                    reset_after_request = true
+                end
                 if (reverse_logic) then
                     if (state == 1) then
                         state = 0
@@ -166,8 +189,15 @@ srv:listen(80,function(conn)
         -- Send whatever response we generated, clean up, and turn off LED
         client:send(buf);
         client:close();
+        buf = nil
         collectgarbage();
 	gpio.write(led_pin, gpio.HIGH)
+        syslog("Request done, heap space " .. node.heap())
+
+        if (reset_after_request) then
+            syslog("Restarting automatically")
+            node.restart()
+        end
     end)
 end)
 
