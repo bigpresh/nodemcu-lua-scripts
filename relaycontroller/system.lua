@@ -91,7 +91,9 @@ srv:listen(80,function(conn)
                     }
                     buf = '{"uptime":'..tmr.time()..',"boot_reason_id":'..
                         bootreasonid .. ',"boot_reason_text":"' ..
-                        reasons[bootreasonid] .. '"}'
+                        reasons[bootreasonid] .. ',"heap_space":' ..
+                        node.heap() .. ',"memory_used":' ..
+                        collectgarbage("count") .. '"}'
                 else
                     buf = '{"error":"invalid_pin_name"}'
                 end
