@@ -99,6 +99,10 @@ srv:listen(80,function(conn)
                         reasons[bootreasonid] .. ',"heap_space":' ..
                         node.heap() .. ',"memory_used":' ..
                         collectgarbage("count") .. '"}'
+                elseif (url == 'reboot') then
+                    syslog('Reboot requested')
+                    reset_after_request = true
+                    buf = '{"status":"OK, rebooting"}'
                 else
                     buf = '{"error":"invalid_pin_name"}'
                 end
