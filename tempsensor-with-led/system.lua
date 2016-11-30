@@ -4,7 +4,7 @@ led_pin=4
 dht_pin=5
 
 gpio.mode(led_pin, gpio.OUTPUT)
-gpio.mode(dht_pin, gpio.INPUT, gpio.PULLUP)
+-- gpio.mode(dht_pin, gpio.INPUT)
 
 dht=require("dht") -- is this necessary?
 
@@ -31,7 +31,6 @@ srv:listen(80,function(conn)
         client:close();
 	print('Sent reply')
         collectgarbage();
-	tmr.delay(200000)
 	gpio.write(led_pin, gpio.HIGH)
 	print("LED off, done with request")
     end)
