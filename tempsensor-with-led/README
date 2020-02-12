@@ -1,0 +1,10 @@
+use with my init.lua and wifi.lua files
+
+system.lua loads two components:
+
+- tempsensor-webserver.lua: the webserver which can be asked for a temperature
+  reading at any time
+- gpio-input-reporter.lua: sets a GPIO interrupt, and fires a HTTP request
+  whenever the input goes high, to report door opening events.
+
+
